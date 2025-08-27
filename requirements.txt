@@ -1,19 +1,19 @@
-streamlit>=1.17.0
-supabase>=2.14.0
-bcrypt>=3.2.0
-pandas>=1.5.3
-streamlit-aggrid==1.1.2
-streamlit-option-menu
-matplotlib
-fpdf2
-streamlit-chat
+streamlit>=1.32
+supabase>=2.4.0
+bcrypt>=4.1.2
 pytz>=2021.1
-twilio
-plotly
-streamlit-card
+pandas==2.2.2
+numpy==1.26.4
+matplotlib==3.8.4
+plotly>=5.22
+st-aggrid==0.3.4.post3
+streamlit-option-menu>=0.3.6
+fpdf2>=2.7.9
 XlsxWriter>=3.2.0
-hydralit-components
-numpy
+numpy==1.26.4
+hydralit-components==1.0.10
+
+
 
 
 
