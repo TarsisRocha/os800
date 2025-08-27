@@ -19,7 +19,7 @@ FORTALEZA_TZ = pytz.timezone("America/Fortaleza")
 logging.basicConfig(level=logging.INFO)
 
 st.set_page_config(
-    page_title="Gestão de Parque de Informática",
+    page_title="Abertura de chamado técnico",
     page_icon="infocustec.png",
     layout="wide"
 )
