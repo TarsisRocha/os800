@@ -87,7 +87,7 @@ if os.path.exists(logo_path):
 else:
     st.warning("Logotipo não encontrado.")
 
-st.title("Gestão de Parque de Informática - APS ITAPIPOCA")
+st.title("Gestão de Parque de Informática - APS ITAPAJÉ")
 
 # =========================
 # Helpers
@@ -344,7 +344,6 @@ def chamados_tecnicos_page():
         return (pd.notna(v)) and (str(v).strip().lower() not in ("none", ""))
 
     def _idade_uteis_h(row):
-        # horas úteis desde a abertura até agora (se aberto) ou fechamento
         try:
             ab = datetime.strptime(row["hora_abertura"], "%d/%m/%Y %H:%M:%S")
             if _eh_fechado(row.get("hora_fechamento")):
@@ -359,13 +358,12 @@ def chamados_tecnicos_page():
 
     df["idade_uteis_h"] = df.apply(_idade_uteis_h, axis=1)
 
-    # Flag >48h úteis (apenas se aberto)
+    # Flag >48h úteis
     df[">48h_uteis"] = df.apply(
         lambda r: (not _eh_fechado(r.get("hora_fechamento"))) and r.get("idade_uteis_h") is not None and r["idade_uteis_h"] > 48,
         axis=1
     )
 
-    # Tempo útil textual
     def _tempo_util_txt(row):
         try:
             ab = datetime.strptime(row["hora_abertura"], "%d/%m/%Y %H:%M:%S")
@@ -379,11 +377,11 @@ def chamados_tecnicos_page():
 
     df["Tempo Útil"] = df.apply(_tempo_util_txt, axis=1)
 
-    # Filtro >48h (opcional)
+    # Filtro >48h
     if apenas48:
         df = df[df[">48h_uteis"] == True]
 
-    # Ordenação (priorizar >48h e mais antigos no topo)
+    # Ordenação
     if priorizar48 and not df.empty:
         df = df.sort_values(by=[">48h_uteis", "idade_uteis_h"], ascending=[False, False])
     else:
@@ -403,7 +401,7 @@ def chamados_tecnicos_page():
 
     # Reorganiza colunas úteis primeiro
     prefer = [c for c in ["protocolo", "ubs", "setor", "tipo_defeito", "problema",
-                          "hora_abertura", "Tempo Útil", "idade_uteis_h", ">48h_uteis", "hora_fechamento"] if c in df.columns]
+                          "hora_abertura", "Tempo Útil", "idade_uteis_h", ">48h_uteis", "hora_fechamento", "id"] if c in df.columns]
     others = [c for c in df.columns if c not in prefer]
     df = df[prefer + others].copy()
 
@@ -445,8 +443,7 @@ def chamados_tecnicos_page():
         allow_unsafe_jscode=True,  # necessário para o JS de estilo
     )
 
-    # ===== Ações =====
-    # Finalizar (somente abertos)
+    # ===== Finalizar Chamado (por PROTOCOLO)
     if mostrar == "Somente em aberto":
         df_aberto = df.copy()
     else:
@@ -456,57 +453,80 @@ def chamados_tecnicos_page():
         st.write("Não há chamados abertos para finalizar.")
     else:
         st.markdown("### Finalizar Chamado Técnico")
-        chamado_id = st.selectbox("Selecione o ID do chamado para finalizar", df_aberto["id"].tolist())
-        chamado = df_aberto[df_aberto["id"] == chamado_id].iloc[0]
-        st.write(f"Problema: {chamado.get('problema','(sem descrição)')}")
-
-        # Opções de solução conforme tipo
-        if "impressora" in str(chamado.get("tipo_defeito","")).lower():
-            solucao_options = [
-                "Limpeza e recalibração da impressora",
-                "Substituição de cartucho/toner",
-                "Verificação de conexão e drivers",
-                "Reinicialização da impressora"
-            ]
-        else:
-            solucao_options = [
-                "Reinicialização do sistema",
-                "Atualização de drivers/software",
-                "Substituição de componente (ex.: SSD, Fonte, Memória)",
-                "Verificação de vírus/malware",
-                "Limpeza física e manutenção preventiva",
-                "Reinstalação do sistema operacional",
-                "Atualização do BIOS/firmware",
-                "Verificação e limpeza de superaquecimento",
-                "Otimização de configurações do sistema",
-                "Reset da BIOS"
-            ]
-        solucao_selecionada = st.selectbox("Selecione a solução", solucao_options)
-        solucao_complementar = st.text_area("Detalhes adicionais (opcional)")
-        comentarios = st.text_area("Comentários (opcional)")
-
-        # Peças usadas
-        estoque_data = get_estoque()
-        pieces_list = [item["nome"] for item in estoque_data] if estoque_data else []
-        pecas_selecionadas = st.multiselect("Peças utilizadas (se houver)", pieces_list)
-
-        if st.button("Finalizar Chamado"):
-            solucao_final = solucao_selecionada + (f" - {solucao_complementar}" if solucao_complementar else "")
-            if solucao_final:
-                if comentarios:
-                    solucao_final += f" | Comentários: {comentarios}"
-                finalizar_chamado(int(chamado_id), solucao_final, pecas_usadas=pecas_selecionadas)
+        protos_abertos = df_aberto["protocolo"].astype(str).tolist() if "protocolo" in df_aberto.columns else []
+        if protos_abertos:
+            protocolo_escolhido = st.selectbox("Selecione o PROTOCOLO para finalizar", protos_abertos)
+            sel = df_aberto[df_aberto["protocolo"].astype(str) == str(protocolo_escolhido)]
+            if sel.empty:
+                st.error("Protocolo não encontrado na lista atual.")
             else:
-                st.error("Informe a solução para finalizar o chamado.")
+                row = sel.iloc[0]
+                try:
+                    chamado_id = int(row["id"]) if "id" in row and pd.notna(row["id"]) else None
+                except Exception:
+                    chamado_id = None
 
-    # Reabrir (quando mostrando "Todos" e houver fechados)
+                st.write(f"Problema: {row.get('problema','(sem descrição)')}")
+
+                # Opções de solução
+                if "impressora" in str(row.get("tipo_defeito","")).lower():
+                    solucao_options = [
+                        "Limpeza e recalibração da impressora",
+                        "Substituição de cartucho/toner",
+                        "Verificação de conexão e drivers",
+                        "Reinicialização da impressora"
+                    ]
+                else:
+                    solucao_options = [
+                        "Reinicialização do sistema",
+                        "Atualização de drivers/software",
+                        "Substituição de componente (ex.: SSD, Fonte, Memória)",
+                        "Verificação de vírus/malware",
+                        "Limpeza física e manutenção preventiva",
+                        "Reinstalação do sistema operacional",
+                        "Atualização do BIOS/firmware",
+                        "Verificação e limpeza de superaquecimento",
+                        "Otimização de configurações do sistema",
+                        "Reset da BIOS"
+                    ]
+                solucao_selecionada = st.selectbox("Selecione a solução", solucao_options)
+                solucao_complementar = st.text_area("Detalhes adicionais (opcional)")
+                comentarios = st.text_area("Comentários (opcional)")
+
+                # Peças usadas
+                estoque_data = get_estoque()
+                pieces_list = [item["nome"] for item in estoque_data] if estoque_data else []
+                pecas_selecionadas = st.multiselect("Peças utilizadas (se houver)", pieces_list)
+
+                if st.button("Finalizar Chamado"):
+                    if not chamado_id:
+                        st.error("Não foi possível identificar o ID interno do chamado.")
+                    else:
+                        solucao_final = solucao_selecionada + (f" - {solucao_complementar}" if solucao_complementar else "")
+                        if comentarios:
+                            solucao_final += f" | Comentários: {comentarios}"
+                        finalizar_chamado(chamado_id, solucao_final, pecas_usadas=pecas_selecionadas)
+
+    # ===== Reabrir Chamado (por PROTOCOLO) — somente quando mostrando “Todos”
     df_fechado = df[df["Tempo Útil"] != "Em aberto"] if mostrar == "Todos" else pd.DataFrame()
-    if not df_fechado.empty:
+    if not df_fechado.empty and "protocolo" in df_fechado.columns:
         st.markdown("### Reabrir Chamado Técnico")
-        chamado_fechado_id = st.selectbox("Selecione o ID do chamado para reabrir", df_fechado["id"].tolist())
-        remover_hist = st.checkbox("Remover registro de manutenção criado no fechamento anterior?", value=False)
-        if st.button("Reabrir Chamado"):
-            reabrir_chamado(int(chamado_fechado_id), remover_historico=remover_hist)
+        protos_fechados = df_fechado["protocolo"].astype(str).tolist()
+        protocolo_fechado = st.selectbox("Selecione o PROTOCOLO para reabrir", protos_fechados)
+        sel_f = df_fechado[df_fechado["protocolo"].astype(str) == str(protocolo_fechado)]
+        if not sel_f.empty:
+            row_f = sel_f.iloc[0]
+            try:
+                chamado_fechado_id = int(row_f["id"]) if "id" in row_f and pd.notna(row_f["id"]) else None
+            except Exception:
+                chamado_fechado_id = None
+
+            remover_hist = st.checkbox("Remover registro de manutenção criado no fechamento anterior?", value=False)
+            if st.button("Reabrir Chamado"):
+                if not chamado_fechado_id:
+                    st.error("Não foi possível identificar o ID interno do chamado.")
+                else:
+                    reabrir_chamado(chamado_fechado_id, remover_historico=remover_hist)
 
 # =========================
 # Página: Inventário
