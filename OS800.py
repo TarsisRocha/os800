@@ -88,7 +88,7 @@ if os.path.exists(logo_path):
 else:
     st.warning("Logotipo não encontrado.")
 
-st.title("Abertura de chamado técnico - APS ITAPAJÉ")
+st.title("Solicitação de apoio técnico ")
 
 # =========================
 # Helpers
