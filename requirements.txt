@@ -1,16 +1,18 @@
-streamlit>=1.17.0 
-supabase>=2.14.0 
-bcrypt>=3.2.0 
-pandas>=1.5.3 
-streamlit-aggrid==1.1.2 
+streamlit>=1.17.0
+supabase>=2.14.0
+bcrypt>=3.2.0
+pandas>=1.5.3
+streamlit-aggrid==1.1.2
 streamlit-option-menu
-matplotlib fpdf2 
-streamlit-chat 
+matplotlib
+fpdf2
+streamlit-chat
 pytz>=2021.1
 twilio
 plotly
 streamlit-card
 XlsxWriter>=3.2.0
+
 
 
 
