@@ -13,6 +13,7 @@ plotly
 streamlit-card
 XlsxWriter>=3.2.0
 hydralit-components>=1.0.10
+numpy>=1.26.4
 
 
 
